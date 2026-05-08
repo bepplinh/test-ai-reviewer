@@ -1,17 +1,7 @@
 import app from './app';
-import pino from 'pino';
+import { env } from './config/env';
+import { logger } from './utils/logger';
 
-const logger = pino({
-  transport: {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-    },
-  },
-});
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  logger.info(`Server is running on port ${PORT}`);
+app.listen(env.PORT, () => {
+  logger.info(`🚀 Server is running on port ${env.PORT}`);
 });
