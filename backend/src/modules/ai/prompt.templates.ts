@@ -1,4 +1,4 @@
-import { AIReviewResponse } from '../types/review.types';
+import { AIReviewResponse } from './ai.types';
 
 // ============================================================
 // System Prompt
@@ -16,9 +16,12 @@ Focus on:
 - Duplicated or redundant logic
 - Performance inefficiencies
 - Clean code violations
+- Scalability concerns
+- Maintainability issues
 
 Rules:
 - Return ONLY valid JSON. No markdown, no explanation, no code fences.
+- Return STRICT JSON ONLY.
 - Maximum 10 issues.
 - Keep summary under 150 words.
 - Only flag real, actionable issues. Avoid generic feedback.
@@ -31,7 +34,7 @@ Rules:
 // ============================================================
 export function buildReviewPrompt(
   prTitle: string,
-  prBody: string,
+  prBody: string | null | undefined,
   fileDiffs: string
 ): string {
   return `Analyze the following GitHub Pull Request and generate a review.
@@ -48,28 +51,12 @@ Return your response in EXACTLY this JSON format:
   "issues": [
     {
       "severity": "LOW | MEDIUM | HIGH",
-      "category": "SECURITY | VALIDATION | CLEAN_CODE | PERFORMANCE | BUG_RISK",
-      "message": "string",
-      "suggestion": "string",
+      "type": "string (e.g. security, performance, bug, naming, etc.)",
+      "message": "string (concise problem description)",
+      "suggestion": "string (actionable fix)",
       "filePath": "string or null",
       "line": number or null
     }
   ]
 }`;
-}
-
-// ============================================================
-// Validate and parse AI response
-// ============================================================
-export function parseAIResponse(rawResponse: string): AIReviewResponse {
-  const parsed = JSON.parse(rawResponse);
-
-  if (
-    typeof parsed.summary !== 'string' ||
-    !Array.isArray(parsed.issues)
-  ) {
-    throw new Error('AI response does not match expected schema');
-  }
-
-  return parsed as AIReviewResponse;
 }

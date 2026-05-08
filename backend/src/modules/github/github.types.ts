@@ -8,11 +8,20 @@ export interface GithubWebhookDto {
     };
   };
   pull_request: {
+    id: number;
     number: number;
     title: string;
     body: string;
+    html_url: string;
     user: {
       login: string;
+    };
+    base: {
+      ref: string;
+    };
+    head: {
+      ref: string;
+      sha: string;
     };
   };
 }
@@ -23,4 +32,5 @@ export interface GithubPRFile {
   additions: number;
   deletions: number;
   patch?: string;
+  blob_url: string;
 }
