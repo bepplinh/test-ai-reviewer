@@ -2,9 +2,10 @@ import express, { type Application, type Request, type Response } from 'express'
 import cors from 'cors';
 import helmet from 'helmet';
 
-import webhookRoutes from './routes/webhook.route';
-import reviewRoutes from './routes/review.route';
-import { errorMiddleware } from './middlewares/error.middleware';
+import webhookRoutes from './modules/webhook/webhook.route';
+import reviewRoutes from './modules/review/review.route';
+import pullRequestRoutes from './modules/pull-request/pull-request.route';
+import { errorMiddleware } from './shared/middlewares/error.middleware';
 
 const app: Application = express();
 
@@ -38,6 +39,7 @@ app.get('/health', (_req, res: Response) => {
 // Routes
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/pull-requests', pullRequestRoutes);
 
 // Centralized error handler (must be LAST)
 app.use(errorMiddleware);
