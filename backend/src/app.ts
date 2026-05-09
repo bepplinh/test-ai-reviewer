@@ -14,6 +14,8 @@ app.use(helmet());
 app.use(cors());
 
 // Capture raw body for webhook signature verification BEFORE json parsing
+// Also manually parse JSON here because reading the stream consumes it,
+// making express.json() unable to parse it afterwards.
 app.use(
   (req: Request & { rawBody?: string }, _res, next) => {
     let data = '';
@@ -23,13 +25,18 @@ app.use(
     });
     req.on('end', () => {
       req.rawBody = data;
+      // Manually parse JSON body so req.body is available for all routes
+      if (data) {
+        try {
+          req.body = JSON.parse(data);
+        } catch {
+          // Not JSON — leave req.body as-is, express.json() fallback won't help anyway
+        }
+      }
       next();
     });
   }
 );
-
-// Parse JSON body for all other routes
-app.use(express.json());
 
 // Health check
 app.get('/health', (_req, res: Response) => {

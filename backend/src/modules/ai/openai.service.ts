@@ -1,41 +1,45 @@
-import { openaiClient } from '../../config/openai';
+import { geminiClient } from '../../config/gemini';
 import { SYSTEM_PROMPT } from './prompt.templates';
 import { AIReviewResponse } from './ai.types';
 import { logger } from '../../shared/utils/logger';
+import { env } from '../../config/env';
 
 /**
- * Sends the review prompt to OpenAI and returns structured result with usage info.
+ * Sends the review prompt to Google Gemini and returns structured result with usage info.
+ * Uses the free-tier compatible gemini-1.5-flash model by default.
  */
 export async function generateReview(prompt: string): Promise<{
   result: AIReviewResponse;
   usage: { inputTokens: number; outputTokens: number; totalTokens: number; cost: number };
 }> {
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-  
-  logger.info({ model }, 'Generating AI review');
+  const modelName = env.GEMINI_MODEL;
 
-  const response = await openaiClient.chat.completions.create({
-    model,
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: prompt },
-    ],
-    temperature: 0.1,
-    response_format: { type: 'json_object' },
+  logger.info({ model: modelName }, 'Generating AI review');
+
+  const model = geminiClient.getGenerativeModel({
+    model: modelName,
+    systemInstruction: SYSTEM_PROMPT,
+    generationConfig: {
+      temperature: 0.1,
+      responseMimeType: 'application/json',
+    },
   });
 
-  const rawContent = response.choices[0]?.message?.content;
-  const usage = response.usage;
+  const response = await model.generateContent(prompt);
+  const rawContent = response.response.text();
+  const usageMeta = response.response.usageMetadata;
 
-  if (!rawContent || !usage) {
-    throw new Error('OpenAI returned an empty response or missing usage data');
+  if (!rawContent) {
+    throw new Error('Gemini returned an empty response');
   }
 
-  // Basic cost calculation for gpt-4o-mini
-  // Prices: $0.150 / 1M input, $0.600 / 1M output
-  const inputTokens = usage.prompt_tokens;
-  const outputTokens = usage.completion_tokens;
-  const cost = (inputTokens * 0.15 + outputTokens * 0.6) / 1_000_000;
+  const inputTokens = usageMeta?.promptTokenCount ?? 0;
+  const outputTokens = usageMeta?.candidatesTokenCount ?? 0;
+  const totalTokens = usageMeta?.totalTokenCount ?? inputTokens + outputTokens;
+
+  // Gemini 1.5 Flash is free-tier: cost = $0 for low usage
+  // For accurate pricing reference: https://ai.google.dev/pricing
+  const cost = 0;
 
   const result = JSON.parse(rawContent) as AIReviewResponse;
 
@@ -49,7 +53,7 @@ export async function generateReview(prompt: string): Promise<{
     usage: {
       inputTokens,
       outputTokens,
-      totalTokens: usage.total_tokens,
+      totalTokens,
       cost,
     },
   };
