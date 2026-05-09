@@ -49,7 +49,7 @@ export async function createReviewRun(data: {
     data: {
       pullRequestId: pullRequest.id,
       status: 'RECEIVED',
-      modelName: process.env.OPENAI_MODEL || 'gpt-4o',
+      modelName: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
       promptVersion: '2.0.0',
     },
   });

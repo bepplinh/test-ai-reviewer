@@ -4,7 +4,7 @@ import {
   createPullRequestComment,
   buildDiffString,
 } from '../github/github.service';
-import { generateReview } from '../ai/openai.service';
+import { generateReview } from '../ai/gemini.service';
 import { buildGithubComment } from '../comment/comment.service';
 import { buildReviewPrompt } from '../ai/prompt.templates';
 import {
