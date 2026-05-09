@@ -1,23 +1,29 @@
 import crypto from 'crypto';
 import axios from 'axios';
-import { env } from '../config/env';
-import { GithubPRFile } from '../types/github.types';
-import { logger } from '../utils/logger';
+import { env } from '../../config/env';
+import { GithubPRFile } from './github.types';
+import { logger } from '../../shared/utils/logger';
 
-// Files to skip when analyzing a PR
+// Files to skip when analyzing a PR (V2 Production Ready)
 const IGNORED_FILE_PATTERNS = [
   'package-lock.json',
   'pnpm-lock.yaml',
   'yarn.lock',
+  'package.json',
+  /\.lock$/,
   /^dist\//,
   /^build\//,
   /^node_modules\//,
+  /^coverage\//,
   /\.min\.(js|css)$/,
+  /\.map$/,
+  /\.(png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf)$/, // Binaries/Images
+  /__snapshots__\//,
 ];
 
-const MAX_FILES = 15;
-const MAX_DIFF_SIZE = 20_000;
-const MAX_FILE_LINES = 500;
+const MAX_FILES = 50; // Increased for V2
+const MAX_DIFF_SIZE = 40_000;
+const MAX_FILE_LINES = 1000;
 
 const githubAxios = axios.create({
   baseURL: 'https://api.github.com',
@@ -40,45 +46,56 @@ export function verifyWebhookSignature(
 }
 
 /**
- * Fetches all changed files for a given Pull Request.
- * Filters out unsupported/ignored files and respects size limits.
+ * Fetches changed files for a given Pull Request with pagination.
  */
 export async function getPullRequestFiles(
   owner: string,
   repo: string,
   pullNumber: number
 ): Promise<GithubPRFile[]> {
-  logger.info({ owner, repo, pullNumber }, 'Fetching PR files');
+  logger.info({ owner, repo, pullNumber }, 'Fetching PR files with pagination');
 
-  const { data } = await githubAxios.get<GithubPRFile[]>(
-    `/repos/${owner}/${repo}/pulls/${pullNumber}/files`
-  );
+  let allFiles: GithubPRFile[] = [];
+  let page = 1;
+  const perPage = 100;
 
-  const filtered = data
-    .filter((file) => {
+  while (allFiles.length < MAX_FILES) {
+    const { data } = await githubAxios.get<GithubPRFile[]>(
+      `/repos/${owner}/${repo}/pulls/${pullNumber}/files`,
+      { params: { page, per_page: perPage } }
+    );
+
+    if (data.length === 0) break;
+
+    const filtered = data.filter((file) => {
       const isIgnored = IGNORED_FILE_PATTERNS.some((pattern) =>
         typeof pattern === 'string'
           ? file.filename === pattern
           : pattern.test(file.filename)
       );
       return !isIgnored && file.patch;
-    })
-    .slice(0, MAX_FILES)
-    .map((file) => {
-      // Truncate extremely large patches
-      const lines = (file.patch ?? '').split('\n');
-      if (lines.length > MAX_FILE_LINES) {
-        return {
-          ...file,
-          patch: lines.slice(0, MAX_FILE_LINES).join('\n') + '\n... [truncated]',
-        };
-      }
-      return file;
     });
 
-  logger.info({ count: filtered.length }, 'PR files fetched and filtered');
+    allFiles = [...allFiles, ...filtered];
+    if (data.length < perPage) break;
+    page++;
+  }
 
-  return filtered;
+  const finalFiles = allFiles.slice(0, MAX_FILES).map((file) => {
+    // Truncate large patches
+    const lines = (file.patch ?? '').split('\n');
+    if (lines.length > MAX_FILE_LINES) {
+      return {
+        ...file,
+        patch: lines.slice(0, MAX_FILE_LINES).join('\n') + '\n... [truncated]',
+      };
+    }
+    return file;
+  });
+
+  logger.info({ count: finalFiles.length }, 'PR files fetched, filtered and paginated');
+
+  return finalFiles;
 }
 
 /**
@@ -90,25 +107,24 @@ export async function createPullRequestComment(
   pullNumber: number,
   body: string
 ): Promise<void> {
-  logger.info({ owner, repo, pullNumber }, 'Posting GitHub PR comment');
-
   await githubAxios.post(
     `/repos/${owner}/${repo}/issues/${pullNumber}/comments`,
     { body }
   );
-
-  logger.info({ owner, repo, pullNumber }, 'GitHub PR comment posted');
 }
 
 /**
- * Combines all PR file patches into a single diff string, respecting the total size limit.
+ * Combines all PR file patches into a single diff string.
  */
 export function buildDiffString(files: GithubPRFile[]): string {
   let combined = '';
 
   for (const file of files) {
     const fileSection = `\n\n### File: ${file.filename}\n${file.patch ?? ''}`;
-    if ((combined + fileSection).length > MAX_DIFF_SIZE) break;
+    if ((combined + fileSection).length > MAX_DIFF_SIZE) {
+      combined += `\n\n### [Diff truncated due to size limits]`;
+      break;
+    }
     combined += fileSection;
   }
 

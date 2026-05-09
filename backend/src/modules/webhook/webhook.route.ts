@@ -1,6 +1,6 @@
 import { Router, type IRouter } from 'express';
-import { handleGithubWebhook } from '../controllers/webhook.controller';
-import { verifyGithubSignature } from '../middlewares/verify-signature.middleware';
+import { handleGithubWebhook } from './webhook.controller';
+import { verifyGithubSignature } from '../../shared/middlewares/verify-signature.middleware';
 
 const router: IRouter = Router();
 

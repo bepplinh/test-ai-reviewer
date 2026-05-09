@@ -1,10 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyWebhookSignature } from '../services/github.service';
+import { verifyWebhookSignature } from '../../modules/github/github.service';
 import { logger } from '../utils/logger';
 
 /**
  * Middleware that verifies the GitHub webhook HMAC-SHA256 signature.
- * Requires express.raw() to be used on the webhook route, NOT express.json().
  */
 export function verifyGithubSignature(
   req: Request,
