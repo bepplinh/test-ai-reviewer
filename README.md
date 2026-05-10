@@ -1,42 +1,81 @@
+# 🤖 AI PR Reviewer (V2 Production Ready)
 
-# 3-Day Fresher Engineering Automation Challenge
+A production-grade AI-powered Pull Request reviewer that uses OpenAI to analyze code changes, identify bugs, security risks, and performance issues, then posts comments directly to GitHub.
 
-## Objective
-Identify and implement a small project that helps automate, optimize, or improve your own workflow as an Engineer. The project should target something that reduces manual work, simplifies repetitive tasks, or uses AI/MCP to enhance your daily efficiency.
+## 🚀 Features
 
-## Duration
-3 Days
+- **Asynchronous Review Pipeline**: Uses **BullMQ** and **Redis** for reliable background processing.
+- **Webhook Idempotency**: Protects against duplicate GitHub webhook deliveries using `X-GitHub-Delivery` tracking.
+- **Module-based Architecture**: Clean, scalable codebase organized by business modules.
+- **Advanced Filtering**: Automatically ignores generated files, lock files, and binaries to save tokens.
+- **Cost & Token Tracking**: Logs estimated USD cost and token usage for every review run.
+- **PR Dashboard API**: Endpoints for listing pull requests, review history, and aggregated statistics.
+- **Multi-stage Docker Support**: Production-ready Dockerfile for easy deployment.
 
-## Expectations
+## 🛠 Tech Stack
 
-- Pick a problem area from your current workflow that causes friction or consumes time.
-- Propose a small automation, tool, or AI-based solution to address that problem.
-- Build a working prototype or script that demonstrates the solution.
-- Prepare a short demo or walkthrough of what you built.
-- If you are unsure or stuck on ideas, you may pick from the default challenge ideas below.
+- **Runtime**: Node.js (v20+)
+- **Language**: TypeScript
+- **Framework**: Express.js
+- **Database**: PostgreSQL with Prisma ORM
+- **Queue**: BullMQ with Redis
+- **AI**: OpenAI API (GPT-4o-mini)
+- **Containerization**: Docker & Docker Compose
 
-## Default Challenge Ideas (Optional)
+## 📁 Project Structure
 
-- Email to Task Converter - Turn flagged emails into tasks automatically.
-- Meeting Summary Extractor - Auto-generate action items from MS Teams or Zoom meeting transcripts.
-- Daily Standup Generator - Draft your daily standup update using data from Git, Jira, or MS Teams.
-- Code Review Reminder Bot - Get reminders for pending pull request reviews.
-- Code Snippet Organizer with Search - Save and search your personal code snippets.
-- User Story Auto-Breaker - Break large user stories into tasks based on rules.
-- MS Teams to Knowledge Base Bridge - Suggest good discussions from MS Teams for the knowledge base.
-- Personal Notes MCP - Manage and search personal notes using MCP.
-- AI PR Reviewer - AI reviews pull requests based on your custom rules.
-- Team Alerts Summarizer (MS Teams) - Summarize noisy alerts and send clean updates via MS Teams.
+```text
+backend/
+├── src/
+│   ├── modules/          # Business logic (webhook, review, pr, etc.)
+│   ├── shared/           # Common utils, middlewares, and loggers
+│   ├── config/           # Environment and client configurations
+│   ├── prisma/           # Prisma client singleton
+│   ├── server.ts         # Entry point
+│   └── app.ts            # Express app setup
+├── prisma/               # Schema and migrations
+└── Dockerfile            # Production build
+```
 
-## Deliverable
+## ⚙️ Getting Started
 
-- Working prototype (script, bot, integration, etc.)
-- Short demo (video, live walkthrough, or documentation)
-- Reflection on how this project helps your workflow
+### 1. Prerequisites
+- Node.js v20+ & pnpm
+- Docker & Docker Compose
+- GitHub Personal Access Token (with `repo` permissions)
+- OpenAI API Key
 
-## Goal
+### 2. Setup Environment
+Create a `.env` file in the `backend/` directory:
+```env
+PORT=3000
+DATABASE_URL="postgresql://postgres:password@localhost:5432/ai_pr_reviewer"
+REDIS_URL="redis://localhost:6379"
+OPENAI_API_KEY="sk-..."
+OPENAI_MODEL="gpt-4o-mini"
+GITHUB_TOKEN="ghp_..."
+GITHUB_WEBHOOK_SECRET="your-secret"
+```
 
-Learn to take initiative, solve practical problems, and build useful workflow tools with automation and AI.
+### 3. Run with Docker
+```bash
+docker-compose up -d
+```
 
-## Deadline
-3 days from project start.
+### 4. Local Development
+```bash
+cd backend
+pnpm install
+npx prisma generate
+pnpm dev
+```
+
+## 📡 API Endpoints
+
+- `POST /api/webhooks/github`: Receives GitHub webhooks.
+- `GET /api/pull-requests`: List all PRs and their latest review status.
+- `GET /api/pull-requests/:id`: Full history and issues for a specific PR.
+- `GET /api/stats`: Total reviews, success rate, and accumulated cost.
+
+---
+*Developed as part of the MindX Engineering Challenge.*

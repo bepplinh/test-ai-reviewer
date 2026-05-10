@@ -6,56 +6,78 @@ datasource db {
   provider = "postgresql"
 }
 
-model Review {
-  id            String           @id @default(cuid())
-  repoName      String
-  prNumber      Int
-  prTitle       String
-  author        String
-  status        ReviewStatus
-  aiSummary     String?
-  errorMessage  String?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+model PullRequest {
+  id          String   @id @default(cuid())
+  repoOwner   String
+  repoName    String
+  prNumber    Int
+  prTitle     String
+  author      String
+  baseBranch  String
+  headBranch  String
+  headSha     String
+  githubUrl   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  comments      ReviewComment[]
+  reviews     ReviewRun[]
 
-  @@index([repoName])
-  @@index([prNumber])
+  @@unique([repoOwner, repoName, prNumber])
+}
+
+model ReviewRun {
+  id               String   @id @default(cuid())
+  pullRequestId    String
+  status           ReviewStatus
+  aiSummary        String?
+  modelName        String
+  promptVersion    String
+  inputTokens      Int?
+  outputTokens     Int?
+  totalTokens      Int?
+  estimatedCostUsd Float?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  errorMessage     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  pullRequest      PullRequest @relation(fields: [pullRequestId], references: [id])
+  comments         ReviewComment[]
 }
 
 model ReviewComment {
-  id          String           @id @default(cuid())
-  reviewId    String
-  severity    Severity
-  category    ReviewCategory
+  id          String   @id @default(cuid())
+  reviewRunId String
+  severity    SeverityLevel
+  type        String
   message     String
-  suggestion  String
+  suggestion  String?
   filePath    String?
   line        Int?
 
-  review      Review @relation(fields: [reviewId], references: [id])
+  reviewRun   ReviewRun @relation(fields: [reviewRunId], references: [id])
+}
 
-  @@index([reviewId])
+model ProcessedWebhook {
+  id         String   @id @default(cuid())
+  deliveryId String   @unique
+  event      String
+  createdAt  DateTime @default(now())
 }
 
 enum ReviewStatus {
-  PENDING
-  PROCESSING
+  RECEIVED
+  QUEUED
+  FETCHING_PR
+  ANALYZING
+  COMMENTING
   COMPLETED
   FAILED
 }
 
-enum Severity {
+enum SeverityLevel {
   LOW
   MEDIUM
   HIGH
-}
-
-enum ReviewCategory {
-  SECURITY
-  VALIDATION
-  CLEAN_CODE
-  PERFORMANCE
-  BUG_RISK
 }
