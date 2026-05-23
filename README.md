@@ -1,81 +1,100 @@
-# 🤖 AI PR Reviewer (V2 Production Ready)
+# ReviewPulse: AI-Powered PR Automation
 
-A production-grade AI-powered Pull Request reviewer that uses OpenAI to analyze code changes, identify bugs, security risks, and performance issues, then posts comments directly to GitHub.
+**ReviewPulse** is an intelligent Engineering Automation tool designed to streamline the code review process. By integrating AI into the pull request workflow, it provides instant, actionable feedback, catches common bugs, and ensures coding standards are met before a human even opens the PR.
 
-## 🚀 Features
+---
 
-- **Asynchronous Review Pipeline**: Uses **BullMQ** and **Redis** for reliable background processing.
+## 🚀 Key Features
+
+- **Automated AI Reviews**: Leverages **Google Gemini AI** (Gemini-1.5-Pro) to analyze code changes and provide meaningful comments.
+- **Asynchronous Processing**: Built with **BullMQ** and **Redis** to handle high-volume GitHub webhooks reliably without performance bottlenecks.
 - **Webhook Idempotency**: Protects against duplicate GitHub webhook deliveries using `X-GitHub-Delivery` tracking.
-- **Module-based Architecture**: Clean, scalable codebase organized by business modules.
-- **Advanced Filtering**: Automatically ignores generated files, lock files, and binaries to save tokens.
-- **Cost & Token Tracking**: Logs estimated USD cost and token usage for every review run.
-- **PR Dashboard API**: Endpoints for listing pull requests, review history, and aggregated statistics.
-- **Multi-stage Docker Support**: Production-ready Dockerfile for easy deployment.
+- **Interactive Dashboard**: A modern, premium React dashboard to monitor PR status, review history, and system health.
+- **Database Persistence**: Uses **Prisma** with **PostgreSQL** for robust data management and type-safe queries.
+- **GitHub Integration**: Direct interaction with GitHub API to post line-level comments and review summaries.
 
 ## 🛠 Tech Stack
 
-- **Runtime**: Node.js (v20+)
-- **Language**: TypeScript
-- **Framework**: Express.js
-- **Database**: PostgreSQL with Prisma ORM
-- **Queue**: BullMQ with Redis
-- **AI**: OpenAI API (GPT-4o-mini)
-- **Containerization**: Docker & Docker Compose
+### Backend
+- **Node.js & TypeScript**: Core logic with type safety.
+- **Express**: RESTful API design.
+- **BullMQ + Redis**: Distributed task queue for webhook processing.
+- **Prisma + PostgreSQL**: ORM and relational database.
+- **Google Generative AI**: Gemini integration for code analysis.
+- **Zod**: Runtime schema validation.
 
-## 📁 Project Structure
+### Frontend
+- **React 19**: Modern UI development with the latest APIs.
+- **Vite**: Ultra-fast build tool and dev server.
+- **Vanilla CSS**: Custom design system with Glassmorphism aesthetics.
+- **Lucide React**: Premium iconography.
 
-```text
-backend/
-├── src/
-│   ├── modules/          # Business logic (webhook, review, pr, etc.)
-│   ├── shared/           # Common utils, middlewares, and loggers
-│   ├── config/           # Environment and client configurations
-│   ├── prisma/           # Prisma client singleton
-│   ├── server.ts         # Entry point
-│   └── app.ts            # Express app setup
-├── prisma/               # Schema and migrations
-└── Dockerfile            # Production build
-```
+---
 
-## ⚙️ Getting Started
+## 🏗 Architecture
 
-### 1. Prerequisites
-- Node.js v20+ & pnpm
+ReviewPulse follows a modular architecture designed for scalability:
+
+1. **Webhook Layer**: Receives events from GitHub (Pull Request opened/updated).
+2. **Queue Layer**: Pushes events into BullMQ to ensure no event is lost and to handle retries.
+3. **AI Worker**: Pulls jobs from the queue, fetches the PR diff, and communicates with Gemini AI.
+4. **Action Layer**: Posts the generated review back to GitHub as comments.
+5. **Dashboard**: Provides a real-time view of the automation pipeline.
+
+---
+
+## 🚦 Getting Started
+
+### Prerequisites
+- Node.js (v18+)
 - Docker & Docker Compose
-- GitHub Personal Access Token (with `repo` permissions)
-- OpenAI API Key
+- GitHub Personal Access Token (PAT)
+- Google AI API Key (Gemini)
 
-### 2. Setup Environment
-Create a `.env` file in the `backend/` directory:
-```env
-PORT=3000
-DATABASE_URL="postgresql://postgres:password@localhost:5432/ai_pr_reviewer"
-REDIS_URL="redis://localhost:6379"
-OPENAI_API_KEY="sk-..."
-OPENAI_MODEL="gpt-4o-mini"
-GITHUB_TOKEN="ghp_..."
-GITHUB_WEBHOOK_SECRET="your-secret"
-```
+### Local Setup
 
-### 3. Run with Docker
-```bash
-docker-compose up -d
-```
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd mindx-challenge-bepplinh-20260508
+   ```
 
-### 4. Local Development
-```bash
-cd backend
-pnpm install
-npx prisma generate
-pnpm dev
-```
+2. **Environment Variables**
+   Create a `.env` file in the `backend` directory:
+   ```env
+   DATABASE_URL="postgresql://user:password@localhost:5432/reviewpulse"
+   REDIS_URL="redis://localhost:6379"
+   GITHUB_TOKEN="your_github_token"
+   GEMINI_API_KEY="your_gemini_key"
+   ```
 
-## 📡 API Endpoints
+3. **Spin up Infrastructure**
+   ```bash
+   docker-compose up -d
+   ```
 
-- `POST /api/webhooks/github`: Receives GitHub webhooks.
-- `GET /api/pull-requests`: List all PRs and their latest review status.
-- `GET /api/pull-requests/:id`: Full history and issues for a specific PR.
-- `GET /api/stats`: Total reviews, success rate, and accumulated cost.
+4. **Install & Run**
+   ```bash
+   # Backend
+   cd backend && pnpm install && pnpm run dev
+
+   # Frontend (in another terminal)
+   cd frontend && npm install && npm run dev
+   ```
+
+---
+
+## 📈 Future Roadmap
+
+- [ ] Support for multiple LLMs (OpenAI, Anthropic).
+- [ ] Customizable review rules per repository.
+- [ ] Slack/MS Teams integration for notifications.
+- [ ] Support for inline code suggestions (Apply Fix).
+
+---
+
+## 📄 License
+MIT
 
 ---
 *Developed as part of the MindX Engineering Challenge.*
